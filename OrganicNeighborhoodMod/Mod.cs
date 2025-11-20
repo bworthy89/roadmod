@@ -2,6 +2,7 @@ using Game;
 using Game.Modding;
 using Game.SceneFlow;
 using Colossal.Logging;
+using OrganicNeighborhood.Systems;
 
 namespace OrganicNeighborhood
 {
@@ -49,16 +50,15 @@ namespace OrganicNeighborhood
             s_Log.Info($"[{ModId}]   - CurveUtils (bezier curves)");
             s_Log.Info($"[{ModId}]   - LayoutParameters (data structures)");
 
-            // TODO Phase 2: Register OrganicNeighborhoodToolSystem
-            // When we create the tool system in Phase 2, register it here:
-            //
-            // s_Log.Info($"[{ModId}] Registering systems...");
-            // updateSystem.UpdateAt<OrganicNeighborhoodToolSystem>(
-            //     SystemUpdatePhase.ToolUpdate);
-            // s_Log.Info($"[{ModId}]   - OrganicNeighborhoodToolSystem registered");
+            // Phase 2: Register OrganicNeighborhoodToolSystem
+            s_Log.Info($"[{ModId}] Registering systems...");
+            updateSystem.UpdateAt<OrganicNeighborhoodToolSystem>(
+                SystemUpdatePhase.ToolUpdate);
+            s_Log.Info($"[{ModId}]   - OrganicNeighborhoodToolSystem registered");
 
             s_Log.Info($"[{ModId}] Loaded successfully!");
-            s_Log.Info($"[{ModId}] Ready for Phase 2: Tool System implementation");
+            s_Log.Info($"[{ModId}] Phase 2 complete: Tool system integrated");
+            s_Log.Info($"[{ModId}] Next: Phase 3 - Grid generation implementation");
         }
 
         /// <summary>
@@ -71,10 +71,11 @@ namespace OrganicNeighborhood
             {
                 s_Log.Info($"[{ModId}] Disposing...");
 
-                // TODO: Add cleanup code here when we have systems
-                // - Unregister event handlers
-                // - Dispose of any native containers
-                // - Clean up any static state
+                // Cleanup: Systems are automatically disposed by Unity ECS
+                // Add manual cleanup here if needed in future phases:
+                // - Unregister event handlers (if any)
+                // - Dispose of any native containers (Phase 3+)
+                // - Clean up any static state (if any)
 
                 s_Log.Info($"[{ModId}] Disposed successfully");
             }
