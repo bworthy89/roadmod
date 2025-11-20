@@ -113,6 +113,36 @@ namespace OrganicNeighborhood.Utils
         }
 
         /// <summary>
+        /// Apply organic variation with custom seed for deterministic variation
+        /// Allows different points to have unique but consistent variation patterns
+        /// </summary>
+        /// <param name="basePosition">Original position</param>
+        /// <param name="strength">Variation strength in meters</param>
+        /// <param name="scale">Noise frequency (lower = smoother variation)</param>
+        /// <param name="seed">Unique seed for this variation (offset in noise space)</param>
+        /// <returns>Varied position</returns>
+        [BurstCompile]
+        public static float3 ApplyOrganicVariation(
+            float3 basePosition,
+            float strength,
+            float scale,
+            float seed)
+        {
+            float2 noiseInput = basePosition.xz * scale + new float2(seed, seed * 0.7f);
+
+            // Sample noise for X and Z offsets
+            float noiseX = Perlin2D(noiseInput);
+            float noiseZ = Perlin2D(noiseInput + new float2(100f, 100f));
+
+            // Center around 0 (noise is 0-1, so subtract 0.5 and multiply by 2)
+            noiseX = (noiseX - 0.5f) * 2f;
+            noiseZ = (noiseZ - 0.5f) * 2f;
+
+            // Apply variation
+            return basePosition + new float3(noiseX, 0, noiseZ) * strength;
+        }
+
+        /// <summary>
         /// Apply organic variation with terrain influence
         /// More variation on slopes, less on flat areas
         /// </summary>

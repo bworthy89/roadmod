@@ -253,31 +253,90 @@ namespace OrganicNeighborhood.Systems
             Log?.Info($"[{Mod.ModId}]   Point 1: {m_Point1.m_Position}");
             Log?.Info($"[{Mod.ModId}]   Point 2: {m_Point2.m_Position}");
             Log?.Info($"[{Mod.ModId}]   Point 3: {m_Point3.m_Position}");
+            Log?.Info($"[{Mod.ModId}]   Style: {m_LayoutParameters.m_Style}");
 
-            // Get entity command buffer
-            EntityCommandBuffer commandBuffer = m_ToolOutputBarrier.CreateCommandBuffer();
-
-            // TODO Phase 3: Schedule GenerateOrganicGridJob
-            // This will calculate all road positions with Perlin variation
-
-            // TODO Phase 4: Apply terrain awareness
-            // Snap roads to terrain, validate slopes, avoid water
-
-            // TODO Phase 5: Create NetCourse entities
-            // Convert road definitions into actual NetCourse entities
-            // that the game's road generation systems will process
-
-            // For now, just log placeholder
-            Log?.Info($"[{Mod.ModId}] Layout generation not yet implemented (Phase 3+)");
-            Log?.Info($"[{Mod.ModId}] Area dimensions:");
+            // Calculate area dimensions for logging
             float width = math.distance(m_Point1.m_Position.xz, m_Point2.m_Position.xz);
             float height = math.distance(m_Point1.m_Position.xz, m_Point3.m_Position.xz);
-            Log?.Info($"[{Mod.ModId}]   Width: {width:F1}m");
-            Log?.Info($"[{Mod.ModId}]   Height: {height:F1}m");
+            Log?.Info($"[{Mod.ModId}] Area dimensions: {width:F1}m × {height:F1}m");
 
-            int roadCountX = (int)(width / m_LayoutParameters.m_RoadSpacing);
-            int roadCountY = (int)(height / m_LayoutParameters.m_RoadSpacing);
-            Log?.Info($"[{Mod.ModId}]   Estimated roads: {roadCountX}x{roadCountY} = {roadCountX + roadCountY} total");
+            // Allocate output list for generated roads
+            NativeList<RoadDefinition> generatedRoads = new NativeList<RoadDefinition>(
+                Allocator.TempJob);
+
+            // Create and schedule the grid generation job
+            GenerateOrganicGridJob job = new GenerateOrganicGridJob
+            {
+                m_PointA = m_Point1.m_Position,
+                m_PointB = m_Point2.m_Position,
+                m_PointC = m_Point3.m_Position,
+                m_Parameters = m_LayoutParameters,
+                m_GeneratedRoads = generatedRoads
+            };
+
+            // Schedule the job (runs immediately since it's IJob)
+            JobHandle jobHandle = job.Schedule();
+            jobHandle.Complete();
+
+            // Log results
+            Log?.Info($"[{Mod.ModId}] Generated {generatedRoads.Length} road segments:");
+
+            // Log road type breakdown
+            int arterialCount = 0;
+            int collectorCount = 0;
+            int localCount = 0;
+            int culDeSacCount = 0;
+
+            for (int i = 0; i < generatedRoads.Length; i++)
+            {
+                RoadDefinition road = generatedRoads[i];
+
+                switch (road.m_Type)
+                {
+                    case RoadType.Arterial: arterialCount++; break;
+                    case RoadType.Collector: collectorCount++; break;
+                    case RoadType.Local: localCount++; break;
+                    case RoadType.CulDeSac: culDeSacCount++; break;
+                }
+
+                // Log first few roads for debugging
+                if (i < 5)
+                {
+                    Log?.Info($"[{Mod.ModId}]   Road {i}: {road.m_Type}, " +
+                             $"{road.GetLength():F1}m, curve={road.m_CurveAmount:F2}");
+                    Log?.Info($"[{Mod.ModId}]     Start: ({road.m_Start.x:F1}, {road.m_Start.y:F1}, {road.m_Start.z:F1})");
+                    Log?.Info($"[{Mod.ModId}]     End: ({road.m_End.x:F1}, {road.m_End.y:F1}, {road.m_End.z:F1})");
+                }
+            }
+
+            Log?.Info($"[{Mod.ModId}] Road type breakdown:");
+            Log?.Info($"[{Mod.ModId}]   Arterial: {arterialCount}");
+            Log?.Info($"[{Mod.ModId}]   Collector: {collectorCount}");
+            Log?.Info($"[{Mod.ModId}]   Local: {localCount}");
+            if (culDeSacCount > 0)
+                Log?.Info($"[{Mod.ModId}]   Cul-de-sac: {culDeSacCount}");
+
+            // TODO Phase 4: Apply terrain awareness
+            // - Snap roads to terrain height
+            // - Validate slopes (reject roads on too-steep terrain)
+            // - Avoid water bodies
+            // For now, roads are generated at Y=0 elevation
+
+            // TODO Phase 5: Create NetCourse entities
+            // Convert RoadDefinition structures into actual NetCourse entities
+            // that the game's road generation systems will process
+            // Get entity command buffer
+            // EntityCommandBuffer commandBuffer = m_ToolOutputBarrier.CreateCommandBuffer();
+            // foreach (RoadDefinition road in generatedRoads)
+            // {
+            //     CreateNetCourseEntity(commandBuffer, road);
+            // }
+
+            Log?.Info($"[{Mod.ModId}] Phase 3 complete! Road generation successful.");
+            Log?.Info($"[{Mod.ModId}] Next: Phase 4 (terrain awareness) and Phase 5 (NetCourse creation)");
+
+            // Cleanup
+            generatedRoads.Dispose();
 
             // Reset state after applying
             m_State = State.WaitingForFirstPoint;
