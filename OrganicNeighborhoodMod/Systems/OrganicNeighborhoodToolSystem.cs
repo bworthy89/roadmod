@@ -1,4 +1,5 @@
 using Colossal.Logging;
+using Colossal.Mathematics;
 using Game;
 using Game.Common;
 using Game.Input;
@@ -58,7 +59,11 @@ namespace OrganicNeighborhood.Systems
         // Layout configuration
         private LayoutParameters m_LayoutParameters;
         private TerrainAwareParameters m_TerrainParameters;
-        private Entity m_RoadPrefab;
+
+        // Road prefabs for different road types
+        private Entity m_ArterialPrefab;
+        private Entity m_CollectorPrefab;
+        private Entity m_LocalPrefab;
 
         // Input actions (inherited from ToolBaseSystem)
         private ProxyAction m_ApplyAction;
@@ -114,9 +119,10 @@ namespace OrganicNeighborhood.Systems
             m_LayoutParameters = LayoutParameters.Default;
             m_TerrainParameters = TerrainAwareParameters.Default;
 
-            // TODO: In Phase 5, get actual road prefab from game
-            // For now, set to Entity.Null - will be populated later
-            m_RoadPrefab = Entity.Null;
+            // Initialize road prefabs to null - will be looked up when needed
+            m_ArterialPrefab = Entity.Null;
+            m_CollectorPrefab = Entity.Null;
+            m_LocalPrefab = Entity.Null;
 
             Log?.Info($"[{Mod.ModId}] OrganicNeighborhoodToolSystem created successfully");
         }
@@ -397,18 +403,53 @@ namespace OrganicNeighborhood.Systems
             // ✅ Slopes validated (rejected if too steep)
             // ✅ Water bodies detected and avoided
 
-            // TODO Phase 5: Create NetCourse entities
-            // Convert RoadDefinition structures into actual NetCourse entities
-            // that the game's road generation systems will process
-            // Get entity command buffer
-            // EntityCommandBuffer commandBuffer = m_ToolOutputBarrier.CreateCommandBuffer();
-            // foreach (RoadDefinition road in generatedRoads)
-            // {
-            //     CreateNetCourseEntity(commandBuffer, road);
-            // }
+            // ===== PHASE 5: NETCOURSE ENTITY CREATION =====
 
-            Log?.Info($"[{Mod.ModId}] Phase 4 complete! Terrain-aware road generation successful.");
-            Log?.Info($"[{Mod.ModId}] Next: Phase 5 (NetCourse entity creation for in-game roads)");
+            // Get entity command buffer for creating entities
+            EntityCommandBuffer commandBuffer = m_ToolOutputBarrier.CreateCommandBuffer();
+
+            int createdCount = 0;
+            int skippedCount = 0;
+
+            // Convert each terrain-aware road into a NetCourse entity
+            for (int i = 0; i < generatedRoads.Length; i++)
+            {
+                RoadDefinition road = generatedRoads[i];
+
+                // Check if we have a prefab for this road type
+                Entity prefab = GetRoadPrefab(road.m_Type);
+
+                if (prefab == Entity.Null)
+                {
+                    skippedCount++;
+                    continue;  // Skip roads without prefabs
+                }
+
+                // Create the NetCourse entity!
+                CreateNetCourseEntity(commandBuffer, road);
+                createdCount++;
+            }
+
+            Log?.Info($"[{Mod.ModId}] NetCourse entity creation complete:");
+            Log?.Info($"[{Mod.ModId}]   Created: {createdCount} entities");
+            if (skippedCount > 0)
+                Log?.Info($"[{Mod.ModId}]   Skipped: {skippedCount} (no prefab configured)");
+
+            if (createdCount == 0)
+            {
+                Log?.Warn($"[{Mod.ModId}] No roads created! Road prefabs not configured.");
+                Log?.Warn($"[{Mod.ModId}] Use SetRoadPrefabs() to configure road prefabs.");
+                Log?.Warn($"[{Mod.ModId}] For now, roads are calculated but not visible in-game.");
+            }
+
+            // ===== END NETCOURSE CREATION =====
+
+            Log?.Info($"[{Mod.ModId}] Phase 5 complete! Road entities created.");
+            if (createdCount > 0)
+            {
+                Log?.Info($"[{Mod.ModId}] Roads should now appear in-game as preview entities!");
+                Log?.Info($"[{Mod.ModId}] Press Enter/Apply to make them permanent, Esc to cancel.");
+            }
 
             // Cleanup
             generatedRoads.Dispose();
@@ -464,6 +505,120 @@ namespace OrganicNeighborhood.Systems
         }
 
         /// <summary>
+        /// Get road prefab entity based on road type
+        /// Uses a simple fallback system for now - Phase 6 will add proper prefab lookup
+        /// </summary>
+        private Entity GetRoadPrefab(RoadType roadType)
+        {
+            // For now, use a default prefab for all road types
+            // In Phase 6, we'll add proper prefab lookup from PrefabSystem
+            // based on road names like "Small Road", "Medium Road", "Large Road"
+
+            switch (roadType)
+            {
+                case RoadType.Arterial:
+                    return m_ArterialPrefab;
+                case RoadType.Collector:
+                    return m_CollectorPrefab;
+                case RoadType.Local:
+                case RoadType.CulDeSac:
+                    return m_LocalPrefab;
+                default:
+                    return m_LocalPrefab;
+            }
+        }
+
+        /// <summary>
+        /// Create a NetCourse entity from a RoadDefinition
+        /// This is the critical method that makes roads appear in-game!
+        /// </summary>
+        private void CreateNetCourseEntity(
+            EntityCommandBuffer commandBuffer,
+            RoadDefinition road)
+        {
+            // Get appropriate road prefab for this road type
+            Entity roadPrefab = GetRoadPrefab(road.m_Type);
+
+            // If no prefab found, log warning and skip
+            if (roadPrefab == Entity.Null)
+            {
+                Log?.Warn($"[{Mod.ModId}] No road prefab found for {road.m_Type}, skipping road");
+                return;
+            }
+
+            // Create the entity
+            Entity entity = commandBuffer.CreateEntity();
+
+            // Add CreationDefinition (tells game what prefab to use)
+            CreationDefinition creationDef = new CreationDefinition
+            {
+                m_Prefab = roadPrefab,
+                m_Original = Entity.Null,  // Not replacing existing road
+                m_Flags = CreationFlags.None
+            };
+            commandBuffer.AddComponent(entity, creationDef);
+
+            // Add Updated component (marks entity as needing processing)
+            commandBuffer.AddComponent<Updated>(entity);
+
+            // Add Temp component (makes this a preview entity)
+            Temp temp = new Temp
+            {
+                m_Flags = TempFlags.Create,  // This will create permanent road on apply
+                m_Original = Entity.Null
+            };
+            commandBuffer.AddComponent(entity, temp);
+
+            // Generate Bezier curve from road definition
+            Bezier4x3 curve = road.m_CurveAmount > 0.01f
+                ? CurveUtils.CreateOrganicCurve(road.m_Start, road.m_End, road.m_CurveAmount, road.m_Seed)
+                : CurveUtils.CreateStraightCurve(road.m_Start, road.m_End);
+
+            // Calculate curve length
+            float length = MathUtils.Length(curve);
+
+            // Create NetCourse component
+            NetCourse netCourse = new NetCourse
+            {
+                m_Curve = curve,
+                m_Length = length,
+                m_FixedIndex = -1,  // Not fixed to specific index
+                m_Elevation = new float2(0f, 0f),  // Default elevation
+
+                // Start position
+                m_StartPosition = new CoursePos
+                {
+                    m_Position = curve.a,
+                    m_Rotation = NetUtils.GetNodeRotation(MathUtils.StartTangent(curve), quaternion.identity),
+                    m_Elevation = new float2(road.m_Start.y, road.m_Start.y),
+                    m_CourseDelta = 0f,  // Start of course
+                    m_Flags = CoursePosFlags.IsFirst,
+                    m_Entity = Entity.Null,
+                    m_ParentMesh = -1,
+                    m_SplitPosition = 0f
+                },
+
+                // End position
+                m_EndPosition = new CoursePos
+                {
+                    m_Position = curve.d,
+                    m_Rotation = NetUtils.GetNodeRotation(MathUtils.EndTangent(curve), quaternion.identity),
+                    m_Elevation = new float2(road.m_End.y, road.m_End.y),
+                    m_CourseDelta = 1f,  // End of course
+                    m_Flags = CoursePosFlags.IsLast,
+                    m_Entity = Entity.Null,
+                    m_ParentMesh = -1,
+                    m_SplitPosition = 1f
+                }
+            };
+
+            // Add NetCourse component
+            commandBuffer.AddComponent(entity, netCourse);
+
+            Log?.Info($"[{Mod.ModId}] Created NetCourse entity for {road.m_Type} road ({length:F1}m)");
+        }
+
+        /// <summary>
         /// Public method to set layout parameters from UI (Phase 6)
         /// </summary>
         public void SetLayoutParameters(LayoutParameters parameters)
@@ -492,12 +647,19 @@ namespace OrganicNeighborhood.Systems
         }
 
         /// <summary>
-        /// Public method to set road prefab (Phase 5)
+        /// Public method to set road prefabs (Phase 5/6)
+        /// Allows UI or configuration to set specific road prefabs for each road type
         /// </summary>
-        public void SetRoadPrefab(Entity prefab)
+        public void SetRoadPrefabs(Entity arterial, Entity collector, Entity local)
         {
-            m_RoadPrefab = prefab;
-            Log?.Info($"[{Mod.ModId}] Road prefab set: {prefab}");
+            m_ArterialPrefab = arterial;
+            m_CollectorPrefab = collector;
+            m_LocalPrefab = local;
+
+            Log?.Info($"[{Mod.ModId}] Road prefabs configured:");
+            Log?.Info($"[{Mod.ModId}]   Arterial: {arterial}");
+            Log?.Info($"[{Mod.ModId}]   Collector: {collector}");
+            Log?.Info($"[{Mod.ModId}]   Local: {local}");
         }
 
         /// <summary>
