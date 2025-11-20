@@ -3,10 +3,10 @@
 
 ---
 
-## PHASE 3 COMPLETE ✅
+## PHASE 4 COMPLETE ✅
 
-**Status**: Grid generation with 6 layout styles implemented
-**Current**: Organic road network generation with Perlin noise variation
+**Status**: Terrain-aware organic neighborhood generation
+**Current**: Roads snap to terrain, validate slopes, and avoid water
 
 ### What's Implemented
 
@@ -81,6 +81,17 @@
 - ✅ Curve amount variation
 - ✅ Unique seed per road for consistency
 
+**ApplyTerrainAwarenessJob.cs** (Phase 4)
+- ✅ Burst-compiled terrain processing job
+- ✅ Terrain height snapping (TerrainHelpers.SnapToTerrain)
+- ✅ Slope validation with configurable max angle (default 15°)
+- ✅ Water crossing detection and avoidance
+- ✅ 10-point slope sampling along each road
+- ✅ 8-point water depth checking
+- ✅ Road filtering (rejects invalid roads)
+- ✅ TerrainStats for comprehensive logging
+- ✅ Integration with TerrainSystem and WaterSystem
+
 ---
 
 ## Project Structure
@@ -97,8 +108,9 @@ OrganicNeighborhoodMod/
 │   └── RoadDefinition.cs             ✅ Road data structure (Phase 3)
 │
 ├── Systems/
-│   ├── OrganicNeighborhoodToolSystem.cs  ✅ Main tool (Phase 2)
-│   └── GenerateOrganicGridJob.cs         ✅ Grid generation (Phase 3)
+│   ├── OrganicNeighborhoodToolSystem.cs  ✅ Main tool (Phase 2 + 4)
+│   ├── GenerateOrganicGridJob.cs         ✅ Grid generation (Phase 3)
+│   └── ApplyTerrainAwarenessJob.cs       ✅ Terrain awareness (Phase 4)
 │
 ├── Mod.cs                            ✅ IMod implementation
 ├── OrganicNeighborhoodMod.csproj     ✅ Build configuration
@@ -107,19 +119,11 @@ OrganicNeighborhoodMod/
 
 ---
 
-## Next Steps: Phase 4 & 5
+## Next Steps: Phase 5 & 6
 
 ### What's Coming Next
 
-**Phase 4 Goal**: Terrain awareness integration
-
-**Tasks**:
-1. Snap generated roads to terrain height
-2. Validate slopes (reject too-steep roads)
-3. Detect and avoid water bodies
-4. Adjust curves to follow terrain contours
-
-**Phase 5 Goal**: NetCourse entity creation
+**Phase 5 Goal**: NetCourse entity creation (IN-GAME ROADS!)
 
 **Tasks**:
 1. Convert RoadDefinition to NetCourse entities
@@ -203,13 +207,16 @@ All utilities are Burst-compiled for maximum performance:
 - [x] Road type determination
 - [x] Job integration with tool system
 
-### Phase 4 (Next)
-- [ ] Terrain snapping (use TerrainHelpers.SnapToTerrain)
-- [ ] Slope validation (use TerrainHelpers.ValidateSlope)
-- [ ] Water detection (use WaterUtils from game)
-- [ ] Terrain-following curves
+### Phase 4 ✅ Complete
+- [x] ApplyTerrainAwarenessJob (183 lines)
+- [x] Terrain snapping (TerrainHelpers.SnapToTerrain)
+- [x] Slope validation (TerrainHelpers.ValidateSlope, 15° max)
+- [x] Water detection (WaterUtils.SampleHeight, 2m depth threshold)
+- [x] Road filtering (rejects steep/water roads)
+- [x] TerrainStats logging
+- [x] Integration with TerrainSystem and WaterSystem
 
-### Phase 5 (Future)
+### Phase 5 (Next)
 - [ ] NetCourse entity creation
 - [ ] Preview/apply workflow
 - [ ] Integration with game systems
@@ -225,15 +232,17 @@ All utilities are Burst-compiled for maximum performance:
 ## Current Capabilities
 
 ✅ **Fully Functional**:
-- 3-point area definition (click 3 points in-game)
+- 3-point area definition (click 3 points to define area)
 - Organic road network generation with 6 layout styles
-- Perlin noise variation for natural appearance
+- Perlin noise variation for natural, organic appearance
 - Road type hierarchy (arterial/collector/local/cul-de-sac)
-- Comprehensive logging and debugging
+- **Terrain height snapping** (roads follow ground elevation)
+- **Slope validation** (rejects roads >15° by default)
+- **Water avoidance** (detects and avoids deep water crossings)
+- Comprehensive logging and statistics
 
 ⏳ **In Progress**:
-- Terrain height integration (Phase 4)
-- Actual road entity creation (Phase 5)
+- NetCourse entity creation (Phase 5 - the final step!)
 
 ---
 
@@ -249,4 +258,19 @@ All utilities are Burst-compiled for maximum performance:
 
 ---
 
-**Status**: Phase 3 ✅ Complete | Phase 4 🔜 Next | Lines of Code: ~2,200+
+**Status**: Phase 4 ✅ Complete | Phase 5 🔜 Next | Lines of Code: ~2,700+
+
+---
+
+## Summary of Phases
+
+| Phase | Status | Description | Lines of Code |
+|-------|--------|-------------|---------------|
+| Phase 1 | ✅ Complete | Foundation utilities (Perlin noise, terrain helpers, curves) | ~1,100 |
+| Phase 2 | ✅ Complete | Tool system integration (3-point input, state machine) | ~400 |
+| Phase 3 | ✅ Complete | Organic grid generation (6 layout styles, Perlin variation) | ~750 |
+| Phase 4 | ✅ Complete | Terrain awareness (height snapping, slope/water validation) | ~300 |
+| Phase 5 | 🔜 Next | NetCourse entity creation (actual in-game roads!) | TBD |
+| Phase 6 | Future | UI panel and parameter tuning | TBD |
+
+**Total**: ~2,700+ lines of production code (all Burst-compiled where applicable)
