@@ -1,0 +1,38 @@
+namespace Game;
+
+public enum SystemUpdatePhase
+{
+	Invalid = -1,
+	MainLoop,
+	LateUpdate,
+	Modification1,
+	Modification2,
+	Modification2B,
+	Modification3,
+	Modification4,
+	Modification4B,
+	Modification5,
+	ModificationEnd,
+	PreSimulation,
+	PostSimulation,
+	GameSimulation,
+	EditorSimulation,
+	Rendering,
+	PreTool,
+	PostTool,
+	ToolUpdate,
+	ClearTool,
+	ApplyTool,
+	Serialize,
+	Deserialize,
+	UIUpdate,
+	UITooltip,
+	PrefabUpdate,
+	DebugGizmos,
+	LoadSimulation,
+	PreCulling,
+	CompleteRendering,
+	Raycast,
+	PrefabReferences,
+	Cleanup
+}

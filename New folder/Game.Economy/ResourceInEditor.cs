@@ -1,0 +1,51 @@
+using System;
+
+namespace Game.Economy;
+
+[Serializable]
+public enum ResourceInEditor
+{
+	NoResource,
+	Money,
+	Grain,
+	ConvenienceFood,
+	Food,
+	Vegetables,
+	Meals,
+	Wood,
+	Timber,
+	Paper,
+	Furniture,
+	Vehicles,
+	Lodging,
+	UnsortedMail,
+	LocalMail,
+	OutgoingMail,
+	Oil,
+	Petrochemicals,
+	Ore,
+	Plastics,
+	Metals,
+	Electronics,
+	Software,
+	Coal,
+	Stone,
+	Livestock,
+	Cotton,
+	Steel,
+	Minerals,
+	Concrete,
+	Machinery,
+	Chemicals,
+	Pharmaceuticals,
+	Beverages,
+	Textiles,
+	Telecom,
+	Financial,
+	Media,
+	Entertainment,
+	Recreation,
+	Garbage,
+	Fish,
+	Count
+}

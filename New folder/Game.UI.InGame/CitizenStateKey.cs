@@ -1,0 +1,35 @@
+namespace Game.UI.InGame;
+
+public enum CitizenStateKey
+{
+	Shopping,
+	FreeTime,
+	Sightseeing,
+	GoingHome,
+	GoingBackToHotel,
+	GoingToWork,
+	Working,
+	Sleeping,
+	Traveling,
+	MovingAway,
+	Studying,
+	GoingToSchool,
+	SeekingMedicalHelp,
+	InHospital,
+	GettingToSafety,
+	Evacuating,
+	CommittingCrime,
+	GoingToJail,
+	GoingToPrison,
+	InJail,
+	InPrison,
+	Escaping,
+	Idling,
+	Dead,
+	MovingIn,
+	LeavingCity,
+	InvolvedInAccident,
+	Safe,
+	InEmergencyShelter,
+	SendMail
+}

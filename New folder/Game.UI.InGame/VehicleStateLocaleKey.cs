@@ -1,0 +1,35 @@
+namespace Game.UI.InGame;
+
+public enum VehicleStateLocaleKey
+{
+	Evacuating,
+	Boarding,
+	Parked,
+	AccidentSite,
+	CrimeScene,
+	Patrolling,
+	Working,
+	Collecting,
+	Extinguishing,
+	Rescuing,
+	Dispatched,
+	Transporting,
+	Buying,
+	Exporting,
+	Importing,
+	Delivering,
+	Conveying,
+	Gathering,
+	Returning,
+	Loading,
+	EnRoute,
+	Disembarking,
+	InvolvedInAccident,
+	Fishing,
+	Farming,
+	Harvesting,
+	Drilling,
+	Mining,
+	Extracting,
+	Unknown
+}

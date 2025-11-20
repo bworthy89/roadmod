@@ -1,0 +1,36 @@
+namespace Game.Input;
+
+public enum BindingGamepad
+{
+	None = 0,
+	DpadUp = 1,
+	DpadDown = 2,
+	DpadLeft = 3,
+	DpadRight = 4,
+	North = 5,
+	East = 6,
+	South = 7,
+	West = 8,
+	LeftShoulder = 11,
+	RightShoulder = 12,
+	Start = 13,
+	Select = 14,
+	LeftTrigger = 33,
+	RightTrigger = 34,
+	LeftStickUp = 35,
+	LeftStickDown = 36,
+	LeftStickLeft = 37,
+	LeftStickRight = 38,
+	RightStickUp = 39,
+	RightStickDown = 40,
+	RightStickLeft = 41,
+	RightStickRight = 42,
+	Y = 5,
+	B = 6,
+	A = 7,
+	X = 8,
+	Triangle = 5,
+	Circle = 6,
+	Cross = 7,
+	Square = 8
+}

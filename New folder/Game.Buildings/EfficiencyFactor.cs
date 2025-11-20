@@ -1,0 +1,38 @@
+namespace Game.Buildings;
+
+public enum EfficiencyFactor : byte
+{
+	Destroyed,
+	Abandoned,
+	Disabled,
+	Fire,
+	ServiceBudget,
+	NotEnoughEmployees,
+	SickEmployees,
+	EmployeeHappiness,
+	ElectricitySupply,
+	ElectricityFee,
+	WaterSupply,
+	DirtyWater,
+	SewageHandling,
+	WaterFee,
+	Garbage,
+	Telecom,
+	Mail,
+	MaterialSupply,
+	WindSpeed,
+	WaterDepth,
+	SunIntensity,
+	NaturalResources,
+	CityModifierSoftware,
+	CityModifierElectronics,
+	CityModifierIndustrialEfficiency,
+	CityModifierOfficeEfficiency,
+	CityModifierHospitalEfficiency,
+	SpecializationBonus,
+	CityModifierFishInput,
+	CityModifierFishHub,
+	LackResources,
+	GateBypass,
+	Count
+}

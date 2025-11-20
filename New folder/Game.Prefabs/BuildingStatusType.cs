@@ -1,0 +1,36 @@
+namespace Game.Prefabs;
+
+public enum BuildingStatusType
+{
+	CrimeProbability,
+	MailAccumulation,
+	Wealth,
+	Education,
+	Level,
+	Health,
+	GarbageAccumulation,
+	Profitability,
+	Age,
+	LeisureProvider,
+	Happiness,
+	ElectricityConsumption,
+	NetworkQuality,
+	AirPollutionSource,
+	GroundPollutionSource,
+	NoisePollutionSource,
+	Wellbeing,
+	LodgingProvider,
+	WaterPollutionSource,
+	LandValue,
+	WaterConsumption,
+	ResidentialBuilding,
+	CommercialBuilding,
+	IndustrialBuilding,
+	OfficeBuilding,
+	SignatureResidential,
+	SignatureCommercial,
+	SignatureIndustrial,
+	SignatureOffice,
+	HomelessCount,
+	OutsideTrading
+}

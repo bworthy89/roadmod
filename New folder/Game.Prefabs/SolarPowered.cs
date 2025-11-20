@@ -1,0 +1,45 @@
+using System;
+using System.Collections.Generic;
+using Game.Buildings;
+using Unity.Entities;
+using UnityEngine;
+
+namespace Game.Prefabs;
+
+[RequireComponent(typeof(PowerPlant))]
+[ComponentMenu("Buildings/CityServices/", new Type[]
+{
+	typeof(BuildingPrefab),
+	typeof(BuildingExtensionPrefab)
+})]
+public class SolarPowered : ComponentBase, IServiceUpgrade
+{
+	public int m_Production;
+
+	public override void GetPrefabComponents(HashSet<ComponentType> components)
+	{
+		components.Add(ComponentType.ReadWrite<SolarPoweredData>());
+	}
+
+	public override void GetArchetypeComponents(HashSet<ComponentType> components)
+	{
+		if (GetComponent<ServiceUpgrade>() == null)
+		{
+			components.Add(ComponentType.ReadWrite<Efficiency>());
+			components.Add(ComponentType.ReadWrite<RenewableElectricityProduction>());
+		}
+	}
+
+	public void GetUpgradeComponents(HashSet<ComponentType> components)
+	{
+		components.Add(ComponentType.ReadWrite<Efficiency>());
+	}
+
+	public override void Initialize(EntityManager entityManager, Entity entity)
+	{
+		entityManager.SetComponentData(entity, new SolarPoweredData
+		{
+			m_Production = m_Production
+		});
+	}
+}

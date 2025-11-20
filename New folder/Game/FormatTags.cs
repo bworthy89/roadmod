@@ -1,0 +1,38 @@
+namespace Game;
+
+public enum FormatTags
+{
+	ShortLaneOptimization,
+	HomelessAndWorkerFix,
+	CompanyAndCargoFix,
+	TradeCostFix,
+	TerrainSystemCleanup,
+	FishResource,
+	AquacultureLandAmbience,
+	BpPrefabData,
+	ContentPrefabInCityConfiguration,
+	SeagullAmbience,
+	BPDLCAchievement,
+	StandingLegOffset,
+	CargoPortCleanup,
+	NewWaterSources,
+	RemoveConsumptionAccumulator,
+	TrackCompanyCustomersAndTaxes,
+	ActivityProps,
+	UnifyCompanyStatistics,
+	UnemploymentAffectHappiness,
+	HouseholdConsumptionFix,
+	MovingAwayReason,
+	SicknessHealthPenalty,
+	LevelingFixReset,
+	IndustrialConsumptionAccumulator,
+	LevelUpStatistics,
+	WaterfrontLowCommercialZone,
+	OldTownAmbience,
+	WaterSourceYPositionFix,
+	TrackProcessingMail,
+	TrackCitizenEconomyStats,
+	DelayMoveAwayCompany,
+	TrackCityMaxProduction,
+	BicycleDataMigration
+}
