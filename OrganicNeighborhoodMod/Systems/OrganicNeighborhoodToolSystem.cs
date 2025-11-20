@@ -4,6 +4,7 @@ using Game.Common;
 using Game.Input;
 using Game.Net;
 using Game.Prefabs;
+using Game.Simulation;
 using Game.Tools;
 using OrganicNeighborhood.Data;
 using OrganicNeighborhood.Utils;
@@ -42,6 +43,8 @@ namespace OrganicNeighborhood.Systems
         private ToolOutputBarrier m_ToolOutputBarrier;
         private ToolRaycastSystem m_ToolRaycastSystem;
         private PrefabSystem m_PrefabSystem;
+        private TerrainSystem m_TerrainSystem;
+        private WaterSystem m_WaterSystem;
         private EntityQuery m_DefinitionQuery;
         private EntityQuery m_TempQuery;
 
@@ -54,6 +57,7 @@ namespace OrganicNeighborhood.Systems
 
         // Layout configuration
         private LayoutParameters m_LayoutParameters;
+        private TerrainAwareParameters m_TerrainParameters;
         private Entity m_RoadPrefab;
 
         // Input actions (inherited from ToolBaseSystem)
@@ -84,6 +88,8 @@ namespace OrganicNeighborhood.Systems
             m_ToolOutputBarrier = World.GetOrCreateSystemManaged<ToolOutputBarrier>();
             m_ToolRaycastSystem = World.GetOrCreateSystemManaged<ToolRaycastSystem>();
             m_PrefabSystem = World.GetOrCreateSystemManaged<PrefabSystem>();
+            m_TerrainSystem = World.GetOrCreateSystemManaged<TerrainSystem>();
+            m_WaterSystem = World.GetOrCreateSystemManaged<WaterSystem>();
 
             // Create queries for temporary entities
             m_DefinitionQuery = GetEntityQuery(new EntityQueryDesc
@@ -106,6 +112,7 @@ namespace OrganicNeighborhood.Systems
             // Initialize state
             m_State = State.WaitingForFirstPoint;
             m_LayoutParameters = LayoutParameters.Default;
+            m_TerrainParameters = TerrainAwareParameters.Default;
 
             // TODO: In Phase 5, get actual road prefab from game
             // For now, set to Entity.Null - will be populated later
@@ -275,11 +282,80 @@ namespace OrganicNeighborhood.Systems
             };
 
             // Schedule the job (runs immediately since it's IJob)
-            JobHandle jobHandle = job.Schedule();
-            jobHandle.Complete();
+            JobHandle gridJobHandle = job.Schedule();
+            gridJobHandle.Complete();
 
-            // Log results
-            Log?.Info($"[{Mod.ModId}] Generated {generatedRoads.Length} road segments:");
+            // Log initial generation results
+            Log?.Info($"[{Mod.ModId}] Generated {generatedRoads.Length} road segments (before terrain processing)");
+
+            // ===== PHASE 4: TERRAIN AWARENESS =====
+
+            // Get terrain and water data from game systems
+            TerrainHeightData terrainHeightData = m_TerrainSystem.GetHeightData();
+            WaterSurfaceData waterSurfaceData = m_WaterSystem.GetSurfaceData(out JobHandle waterDeps);
+
+            // Wait for water data dependencies
+            waterDeps.Complete();
+
+            // Convert NativeList to NativeArray for the terrain job
+            NativeArray<RoadDefinition> inputRoadsArray = new NativeArray<RoadDefinition>(
+                generatedRoads.Length,
+                Allocator.TempJob);
+
+            for (int i = 0; i < generatedRoads.Length; i++)
+            {
+                inputRoadsArray[i] = generatedRoads[i];
+            }
+
+            // Create output list for terrain-aware roads
+            NativeList<RoadDefinition> terrainAwareRoads = new NativeList<RoadDefinition>(
+                generatedRoads.Length,
+                Allocator.TempJob);
+
+            // Create statistics reference
+            NativeReference<TerrainStats> terrainStats = new NativeReference<TerrainStats>(
+                TerrainStats.Create(),
+                Allocator.TempJob);
+
+            // Create and schedule terrain awareness job
+            ApplyTerrainAwarenessJob terrainJob = new ApplyTerrainAwarenessJob
+            {
+                m_InputRoads = inputRoadsArray,
+                m_TerrainParams = m_TerrainParameters,
+                m_TerrainHeightData = terrainHeightData,
+                m_WaterSurfaceData = waterSurfaceData,
+                m_OutputRoads = terrainAwareRoads,
+                m_Stats = terrainStats
+            };
+
+            JobHandle terrainJobHandle = terrainJob.Schedule();
+            terrainJobHandle.Complete();
+
+            // Get terrain statistics
+            TerrainStats stats = terrainStats.Value;
+
+            Log?.Info($"[{Mod.ModId}] Terrain processing complete:");
+            Log?.Info($"[{Mod.ModId}]   Processed: {stats.m_TotalRoads} roads");
+            Log?.Info($"[{Mod.ModId}]   Valid: {stats.m_ValidRoads} roads");
+            if (stats.m_RejectedBySlope > 0)
+                Log?.Info($"[{Mod.ModId}]   Rejected (slope): {stats.m_RejectedBySlope} roads");
+            if (stats.m_RejectedByWater > 0)
+                Log?.Info($"[{Mod.ModId}]   Rejected (water): {stats.m_RejectedByWater} roads");
+            if (stats.m_ValidRoads > 0)
+            {
+                Log?.Info($"[{Mod.ModId}]   Elevation range: {stats.m_MinElevation:F1}m to {stats.m_MaxElevation:F1}m");
+            }
+
+            // Cleanup temporary arrays
+            inputRoadsArray.Dispose();
+            terrainStats.Dispose();
+
+            // Use terrain-aware roads for final output
+            // Swap references: terrainAwareRoads becomes the main list
+            generatedRoads.Dispose();
+            generatedRoads = terrainAwareRoads;
+
+            // ===== END TERRAIN AWARENESS =====
 
             // Log road type breakdown
             int arterialCount = 0;
@@ -316,11 +392,10 @@ namespace OrganicNeighborhood.Systems
             if (culDeSacCount > 0)
                 Log?.Info($"[{Mod.ModId}]   Cul-de-sac: {culDeSacCount}");
 
-            // TODO Phase 4: Apply terrain awareness
-            // - Snap roads to terrain height
-            // - Validate slopes (reject roads on too-steep terrain)
-            // - Avoid water bodies
-            // For now, roads are generated at Y=0 elevation
+            // Phase 4 Complete: Terrain awareness applied!
+            // ✅ Roads snapped to terrain height
+            // ✅ Slopes validated (rejected if too steep)
+            // ✅ Water bodies detected and avoided
 
             // TODO Phase 5: Create NetCourse entities
             // Convert RoadDefinition structures into actual NetCourse entities
@@ -332,8 +407,8 @@ namespace OrganicNeighborhood.Systems
             //     CreateNetCourseEntity(commandBuffer, road);
             // }
 
-            Log?.Info($"[{Mod.ModId}] Phase 3 complete! Road generation successful.");
-            Log?.Info($"[{Mod.ModId}] Next: Phase 4 (terrain awareness) and Phase 5 (NetCourse creation)");
+            Log?.Info($"[{Mod.ModId}] Phase 4 complete! Terrain-aware road generation successful.");
+            Log?.Info($"[{Mod.ModId}] Next: Phase 5 (NetCourse entity creation for in-game roads)");
 
             // Cleanup
             generatedRoads.Dispose();
@@ -398,6 +473,22 @@ namespace OrganicNeighborhood.Systems
             Log?.Info($"[{Mod.ModId}]   Style: {parameters.m_Style}");
             Log?.Info($"[{Mod.ModId}]   Road spacing: {parameters.m_RoadSpacing}m");
             Log?.Info($"[{Mod.ModId}]   Position variation: {parameters.m_PositionVariation}m");
+        }
+
+        /// <summary>
+        /// Public method to set terrain awareness parameters from UI (Phase 6)
+        /// </summary>
+        public void SetTerrainParameters(TerrainAwareParameters parameters)
+        {
+            m_TerrainParameters = parameters;
+            Log?.Info($"[{Mod.ModId}] Terrain parameters updated:");
+            Log?.Info($"[{Mod.ModId}]   Snap to terrain: {parameters.m_SnapToTerrain}");
+            Log?.Info($"[{Mod.ModId}]   Validate slope: {parameters.m_ValidateSlope}");
+            if (parameters.m_ValidateSlope)
+                Log?.Info($"[{Mod.ModId}]   Max slope: {parameters.m_MaxSlope}°");
+            Log?.Info($"[{Mod.ModId}]   Avoid water: {parameters.m_AvoidWater}");
+            if (parameters.m_AvoidWater)
+                Log?.Info($"[{Mod.ModId}]   Max water depth: {parameters.m_MaxWaterDepth}m");
         }
 
         /// <summary>

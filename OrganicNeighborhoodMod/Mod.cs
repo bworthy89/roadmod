@@ -57,8 +57,8 @@ namespace OrganicNeighborhood
             s_Log.Info($"[{ModId}]   - OrganicNeighborhoodToolSystem registered");
 
             s_Log.Info($"[{ModId}] Loaded successfully!");
-            s_Log.Info($"[{ModId}] Phase 2 complete: Tool system integrated");
-            s_Log.Info($"[{ModId}] Next: Phase 3 - Grid generation implementation");
+            s_Log.Info($"[{ModId}] Phase 4 complete: Terrain-aware organic neighborhood generation");
+            s_Log.Info($"[{ModId}] Next: Phase 5 - NetCourse entity creation for actual roads");
         }
 
         /// <summary>
